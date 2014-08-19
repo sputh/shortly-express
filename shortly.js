@@ -10,6 +10,7 @@ var User = require('./app/models/user');
 var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
+var bcrypt = require('bcrypt-nodejs');
 
 var app = express();
 
@@ -23,35 +24,84 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
 
-app.get('/', 
-function(req, res) {
-  res.render('index');
-});
+app.get('/',
+  function(req, res) {
+    res.render('signup');
+  });
+app.get('/index',
+  function(req, res) {
+    res.render('index');
+  });
+app.get('/create',
+  function(req, res) {
+    res.render('index');
+  });
+app.get('/login',
+  function(req, res) {
+    res.render('login');
+  });
+app.get('/links',
+  function(req, res) {
+    Links.reset().fetch().then(function(links) {
+      res.send(200, links.models);
+    });
+  });
 
-app.get('/create', 
-function(req, res) {
-  res.render('index');
-});
-
-app.get('/links', 
-function(req, res) {
-  Links.reset().fetch().then(function(links) {
-    res.send(200, links.models);
+// User Authentication --Sign up
+app.post('/signup', function(req,res) {
+  console.log('received /signup');
+  var username = req.body.username;
+  var password = req.body.password;
+  var salt = bcrypt.genSaltSync(10);
+  // if(username.length<8 || password.length<8){
+  //   console.log('error, username/pass length too short');
+  // }
+  new User({username: username}).fetch().then(function(found){
+    if(found){
+      alert('Username is already taken');
+    }
+    var user = new User({
+      username: username,
+      password: password,
+    });
+    user.save().then(function(){
+      res.redirect(302,'/create');
+    });
   });
 });
 
-app.post('/links', 
-function(req, res) {
-  var uri = req.body.url;
+app.post('/login', function(req,res) {
+  console.log('received /logged in');
+  var username = req.body.username;
+  var password = req.body.password;
 
-  if (!util.isValidUrl(uri)) {
-    console.log('Not a valid url: ', uri);
-    return res.send(404);
-  }
+  new User({username: username}).fetch().then(function(found){
+    if(found){
+      alert('Username is already taken');
+    }
+    var user = new User({
+      username: username,
+      password: password,
+    });
+    user.save().then(function(){
+      res.redirect(302,'/create');
+    });
+  });
+});
 
+app.post('/links',
+  function(req, res) {
+    var uri = req.body.url;
+
+    if (!util.isValidUrl(uri)) {
+      console.log('Not a valid url: ', uri);
+      return res.send(404);
+    }
+  //select query for any model with url=uri
   new Link({ url: uri }).fetch().then(function(found) {
     if (found) {
-      res.send(200, found.attributes);
+      console.log('inside found');
+      res.json(200, found.attributes);
     } else {
       util.getUrlTitle(uri, function(err, title) {
         if (err) {
@@ -97,12 +147,12 @@ app.get('/*', function(req, res) {
 
       click.save().then(function() {
         db.knex('urls')
-          .where('code', '=', link.get('code'))
-          .update({
-            visits: link.get('visits') + 1,
-          }).then(function() {
-            return res.redirect(link.get('url'));
-          });
+        .where('code', '=', link.get('code'))
+        .update({
+          visits: link.get('visits') + 1,
+        }).then(function() {
+          return res.redirect(link.get('url'));
+        });
       });
     }
   });

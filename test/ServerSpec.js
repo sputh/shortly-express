@@ -13,7 +13,7 @@ var Link = require('../app/models/link');
 // Remove the 'x' from beforeEach block when working on
 // authentication tests.
 /************************************************************/
-var xbeforeEach = function(){};
+var beforeEach = function(){};
 /************************************************************/
 
 
@@ -63,7 +63,7 @@ describe('', function() {
 
     var requestWithSession = request.defaults({jar: true});
 
-    xbeforeEach(function(done){      // create a user that we can then log-in with
+    beforeEach(function(done){      // create a user that we can then log-in with
       new User({
           'username': 'Phillip',
           'password': 'Phillip'
@@ -84,7 +84,7 @@ describe('', function() {
       });
     });
 
-    it('Only shortens valid urls, returning a 404 - Not found for invalid urls', function(done) {
+    xit('Only shortens valid urls, returning a 404 - Not found for invalid urls', function(done) {
       var options = {
         'method': 'POST',
         'uri': 'http://127.0.0.1:4568/links',
@@ -100,7 +100,7 @@ describe('', function() {
       });
     });
 
-    describe('Shortening links:', function(){
+    xdescribe('Shortening links:', function(){
 
       var options = {
         'method': 'POST',
@@ -111,7 +111,7 @@ describe('', function() {
         }
       };
 
-      it('Responds with the short code', function(done) {
+      xit('Responds with the short code', function(done) {
         requestWithSession(options, function(error, res, body) {
           expect(res.body.url).to.equal('http://www.roflzoo.com/');
           expect(res.body.code).to.not.be.null;
@@ -119,7 +119,7 @@ describe('', function() {
         });
       });
 
-      it('New links create a database entry', function(done) {
+      xit('New links create a database entry', function(done) {
         requestWithSession(options, function(error, res, body) {
           db.knex('urls')
             .where('url', '=', 'http://www.roflzoo.com/')
@@ -133,7 +133,7 @@ describe('', function() {
         });
       });
 
-      it('Fetches the link url title', function (done) {
+      xit('Fetches the link url title', function (done) {
         requestWithSession(options, function(error, res, body) {
           db.knex('urls')
             .where('title', '=', 'Rofl Zoo - Daily funny animal pictures')
@@ -155,6 +155,7 @@ describe('', function() {
 
       beforeEach(function(done){
         // save a link to the database
+        console.log('inside beforEach')
         link = new Link({
           url: 'http://www.roflzoo.com/',
           title: 'Rofl Zoo - Daily funny animal pictures',
@@ -164,7 +165,7 @@ describe('', function() {
           done();
         });
       });
-
+      console.log('outside',link);
       it('Returns the same shortened code', function(done) {
         var options = {
           'method': 'POST',
@@ -178,11 +179,11 @@ describe('', function() {
         requestWithSession(options, function(error, res, body) {
           var code = res.body.code;
           expect(code).to.equal(link.get('code'));
-          done();
+          done();s
         });
       });
 
-      it('Shortcode redirects to correct url', function(done) {
+      xit('Shortcode redirects to correct url', function(done) {
         var options = {
           'method': 'GET',
           'uri': 'http://127.0.0.1:4568/' + link.get('code')
@@ -195,7 +196,7 @@ describe('', function() {
         });
       });
 
-      it('Returns all of the links to display on the links page', function(done) {
+      xit('Returns all of the links to display on the links page', function(done) {
         var options = {
           'method': 'GET',
           'uri': 'http://127.0.0.1:4568/links'
