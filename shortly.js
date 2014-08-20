@@ -2,6 +2,8 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
+var cookieParser = require('cookie-parser');
+var session = require('express-session')
 
 
 var db = require('./app/config');
@@ -23,29 +25,36 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
+// Cookie & Session
+app.use(cookieParser());
+app.use(session({secret: '123Secret', cookie: {maxAge: 60000}}));
 
-app.get('/',
-  function(req, res) {
-    res.render('signup');
-  });
-app.get('/index',
-  function(req, res) {
-    res.render('index');
-  });
-app.get('/create',
-  function(req, res) {
-    res.render('index');
-  });
-app.get('/login',
-  function(req, res) {
+var checkUser = function(req, res, next) {
+  console.log("inside of checkUser",req.session.userID);
+  if(!req.session.userID) {
     res.render('login');
+  } else{
+    next();
+  }
+};
+
+app.get('/', checkUser, function(req, res){
+  res.render('index');
+});
+
+app.get('/create', checkUser, function(req, res){
+  res.render('index');
+});
+
+app.get('/login', checkUser, function(req, res){
+  res.render('index');
+});
+
+app.get('/links', checkUser, function(req, res) {
+  Links.reset().fetch().then(function(links) {
+    res.send(200, links.models);
   });
-app.get('/links',
-  function(req, res) {
-    Links.reset().fetch().then(function(links) {
-      res.send(200, links.models);
-    });
-  });
+});
 
 // User Authentication --Sign up
 app.post('/signup', function(req,res) {
@@ -58,14 +67,16 @@ app.post('/signup', function(req,res) {
   // }
   new User({username: username}).fetch().then(function(found){
     if(found){
-      alert('Username is already taken');
+      // alert('Username is already taken');
     }
     var user = new User({
       username: username,
       password: password,
     });
     user.save().then(function(){
-      res.redirect(302,'/create');
+      console.log('user', user.id);
+      req.session.userID = user.id;
+      res.redirect(302,'/');
     });
   });
 });
@@ -77,15 +88,22 @@ app.post('/login', function(req,res) {
 
   new User({username: username}).fetch().then(function(found){
     if(found){
-      alert('Username is already taken');
+      // Check if password is the same as hashed
+      //  if it is the same
+      //    redirect to /create
+      //  else -- login page again
+      var realPass = found.attributes.password;
+      if(bcrypt.compareSync(password,realPass)){
+        // req.session.lastpage = '/index';
+        req.session.userID = found.attributes.id;
+        res.redirect(302,'/create');
+      } else {
+        res.redirect(302,'/login');
+      }
+    } else {
+      res.redirect(302,'/login');
     }
-    var user = new User({
-      username: username,
-      password: password,
-    });
-    user.save().then(function(){
-      res.redirect(302,'/create');
-    });
+
   });
 });
 
